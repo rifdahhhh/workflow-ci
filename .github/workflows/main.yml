@@ -1,0 +1,53 @@
+name: MLFlow CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.12.7
+
+    - name: Check Env
+      run: |
+        python --version
+        pip --version
+
+    - name: Install dependencies
+      run: |
+        pip install -r ./MLProject/requirements.txt
+
+    - name: Run mlflow project
+      run: |
+        mlflow run MLProject
+
+    - name: Get latest MLflow run_id
+      run: |
+        echo "RUN_ID=$(mlflow experiments list --view-type ACTIVE | tail -n 1 | awk '{print $1}')" >> $GITHUB_ENV
+
+    - name: Upload to Google Drive
+      run: |
+        echo "Simulasi upload artifact ke Google Drive"
+
+    - name: Build Docker Model
+      run: |
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/lung-cancer-submission:latest .
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+    - name: Tag Docker Image
+      run: docker tag ${{ secrets.DOCKER_USERNAME }}/lung-cancer-submission:latest ${{ secrets.DOCKER_USERNAME }}/lung-cancer-submission:latest
+
+    - name: Push Docker Image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/lung-cancer-submission:latest
