@@ -7,4 +7,3 @@ entry_points:
     parameters: {}
     command: "python modelling.py"
 
-DOCKER_USERNAME
